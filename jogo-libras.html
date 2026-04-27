@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aprenda Libras na Escola!</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   ESTRUTURA GERAL
+   ============================================================ */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ============================================================
+   TELAS
+   Cada tela ocupa 100% da janela e exibe uma imagem de fundo.
+   Para trocar a imagem de uma tela, altere o background-image
+   da classe correspondente.
+   ============================================================ */
+.tela {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: 100% 100%;
+  background-color: #fff;
+}
+.tela.ativa {
+  display: block;
+}
+
+/* Imagens de fundo de cada tela */
+#tela-escola        { background-image: url(escola.jpg); cursor: pointer; }
+#tela-mapa          { background-image: url(mapa.png); }
+#tela-biblioteca    { background-image: url(biblioteca.png); }
+#tela-brinquedoteca { background-image: url(brinquedoteca.png); }
+#tela-parquinho     { background-image: url(parquinho.png); }
+#tela-refeitorio    { background-image: url(refeitorio.png); }
+#tela-sala-aula     { background-image: url(sala-de-aula.png); }
+#tela-informatica   { background-image: url(sala-de-informatica.png); }
+#tela-atelier       { background-image: url(ateliê.png); }
+
+/* ============================================================
+   HOTSPOTS — ÁREAS CLICÁVEIS INVISÍVEIS
+   ============================================================
+
+   Como ajustar a posição e o tamanho de um hotspot:
+
+   Cada hotspot tem 4 propriedades no estilo inline:
+     left   → distância da borda ESQUERDA da tela (em %)
+     top    → distância da borda SUPERIOR da tela (em %)
+     width  → LARGURA da área clicável (em %)
+     height → ALTURA da área clicável (em %)
+
+   Passo a passo para descobrir os valores certos:
+   1. Abra a imagem em qualquer editor (Paint, Photoshop, etc.)
+   2. Anote as coordenadas do canto superior-esquerdo do objeto (x, y)
+      e o seu tamanho (largura w, altura h) em pixels.
+   3. Divida pelo tamanho total da imagem:
+        left   = x / largura_da_imagem * 100  → resultado em %
+        top    = y / altura_da_imagem  * 100  → resultado em %
+        width  = w / largura_da_imagem * 100  → resultado em %
+        height = h / altura_da_imagem  * 100  → resultado em %
+
+   Dica de depuração:
+   Para enxergar as áreas clicáveis enquanto ajusta,
+   descomente (remova as barras //) da linha abaixo:
+     background: rgba(255,0,0,0.3);
+   Depois de ajustar, comente de volta para deixar invisível.
+   ============================================================ */
+.hotspot {
+  position: absolute;
+  display: block;
+  background: transparent;
+  cursor: pointer;
+  z-index: 100;
+  /* background: rgba(255,0,0,0.3); */
+}
+
+/* ============================================================
+   BOTÃO VOLTAR
+   ============================================================ */
+.btn-voltar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 30px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.7);
+  border-radius: 50px;
+  font-family: 'Fredoka One', cursive;
+  font-size: 1rem;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.2s;
+  z-index: 200;
+  white-space: nowrap;
+}
+.btn-voltar:hover {
+  background: rgba(0,0,0,0.8);
+}
+
+/* ============================================================
+   MODAL DE VÍDEO
+   ============================================================ */
+#modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#modal-overlay.aberto {
+  display: flex;
+}
+#modal-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  max-width: 660px;
+  width: 100%;
+  position: relative;
+}
+#modal-titulo {
+  font-family: 'Fredoka One', cursive;
+  color: #3a7bd5;
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  text-align: center;
+  margin-bottom: 12px;
+}
+#modal-video-wrap {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+#modal-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+#modal-fechar {
+  position: absolute;
+  top: -13px;
+  right: -13px;
+  width: 32px;
+  height: 32px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 32px;
+  text-align: center;
+}
+#modal-fechar:hover { background: #c0392b; }
+
+</style>
+</head>
+<body>
+
+<!-- ==============================================================
+     TELA 1 — ESCOLA
+     Clique em qualquer lugar vai para o mapa (via JS no final).
+============================================================== -->
+<div id="tela-escola" class="tela ativa"></div>
+
+
+<!-- ==============================================================
+     TELA 2 — MAPA
+     Ajuste left/top/width/height de cada hotspot conforme o mapa.png.
+============================================================== -->
+<div id="tela-mapa" class="tela">
+
+  <!-- ATELIÊ -->
+  <div class="hotspot" style="left:27%;top:6%;width:14%;height:13%;"
+       onclick="irParaCena('atelier')"></div>
+
+  <!-- REFEITÓRIO -->
+  <div class="hotspot" style="left:54%;top:6%;width:18%;height:18%;"
+       onclick="irParaCena('refeitorio')"></div>
+
+  <!-- BRINQUEDOTECA -->
+  <div class="hotspot" style="left:27%;top:24%;width:18%;height:16%;"
+       onclick="irParaCena('brinquedoteca')"></div>
+
+  <!-- SALA DE INFORMÁTICA -->
+  <div class="hotspot" style="left:67%;top:26%;width:20%;height:17%;"
+       onclick="irParaCena('informatica')"></div>
+
+  <!-- BIBLIOTECA -->
+  <div class="hotspot" style="left:27%;top:43%;width:18%;height:17%;"
+       onclick="irParaCena('biblioteca')"></div>
+
+  <!-- SALA DE AULA -->
+  <div class="hotspot" style="left:67%;top:48%;width:20%;height:17%;"
+       onclick="irParaCena('sala-aula')"></div>
+
+  <!-- PARQUE (oval à esquerda) -->
+  <div class="hotspot" style="left:4%;top:18%;width:15%;height:42%;"
+       onclick="irParaCena('parquinho')"></div>
+
+  <button class="btn-voltar" onclick="irParaTela('tela-escola')">← Voltar</button>
+</div>
+
+
+<!-- ==============================================================
+     TELA 3 — BIBLIOTECA
+============================================================== -->
+<div id="tela-biblioteca" class="tela">
+
+  <div class="hotspot" style="left:3%;top:20%;width:28%;height:62%;"
+       onclick="abrirModal('Livros', 'https://www.youtube.com/embed/hdni6VCx47w')"></div>
+
+  <div class="hotspot" style="left:36%;top:5%;width:15%;height:22%;"
+       onclick="abrirModal('Globo Terrestre', 'LINK_GLOBO')"></div>
+
+  <div class="hotspot" style="left:56%;top:22%;width:30%;height:42%;"
+       onclick="abrirModal('Televisão', 'LINK_TV')"></div>
+
+  <div class="hotspot" style="left:84%;top:14%;width:12%;height:17%;"
+       onclick="abrirModal('Relógio', 'LINK_RELOGIO')"></div>
+
+  <div class="hotspot" style="left:54%;top:68%;width:38%;height:28%;"
+       onclick="abrirModal('Puff', 'LINK_PUFF')"></div>
+
+  <button class="btn-voltar" onclick="irParaTela('tela-mapa')">← Voltar</button>
+</div>
+
+
+<!-- ==============================================================
+     TELA 4 — BRINQUEDOTECA
+============================================================== -->
+<div id="tela-brinquedoteca" class="tela">
+
+  <div class="hotspot" style="left:23%;top:12%;width:9%;height:18%;"
+       onclick="abrirModal('Foguete', 'LINK_FOGUETE')"></div>
+
+  <div class="hotspot" style="left:24%;top:33%;width:9%;height:19%;"
+       onclick="abrirModal('Boneca', 'LINK_BONECA')"></div>
+
+  <div class="hotspot" style="left:20%;top:53%;width:14%;height:15%;"
+       onclick="abrirModal('Bola', 'LINK_BOLA')"></div>
+
+  <div class="hotspot" style="left:38%;top:42%;width:25%;height:36%;"
+       onclick="abrirModal('Urso de Pelúcia', 'LINK_URSO')"></div>
+
+  <div class="hotspot" style="left:71%;top:9%;width:12%;height:19%;"
+       onclick="abrirModal('Dinossauro', 'LINK_DINO')"></div>
+
+  <div class="hotspot" style="left:76%;top:31%;width:10%;height:11%;"
+       onclick="abrirModal('Helicóptero', 'LINK_HELICOPTERO')"></div>
+
+  <div class="hotspot" style="left:76%;top:52%;width:9%;height:13%;"
+       onclick="abrirModal('Carrinho', 'LINK_CARRINHO')"></div>
+
+  <button class="btn-voltar" onclick="irParaTela('tela-mapa')">← Voltar</button>
+</div>
+
+
+<!-- ==============================================================
+     TELA 5 — PARQUINHO
+============================================================== -->
+<div id="tela-parquinho" class="tela">
+
+  <div class="hotspot" style="left:13%;top:7%;width:23%;height:43%;"
+       onclick="abrirModal('Escorregador', 'LINK_ESCORREGADOR')"></div>
+
+  <div class="hotspot" style="left:64%;top:4%;width:29%;height:41%;"
+       onclick="abrirModal('Balanço', 'LINK_BALANCO')"></div>
+
+  <div class="hotspot" style="left:4%;top:50%;width:30%;height:44%;"
+       onclick="abrirModal('Caixa de Areia', 'LINK_CAIXA_AREIA')"></div>
+
+  <div class="hotspot" style="left:44%;top:49%;width:31%;height:42%;"
+       onclick="abrirModal('Trepa-Trepa', 'LINK_TREPA')"></div>
+
+  <button class="btn-voltar" onclick="irParaTela('tela-mapa')">← Voltar</button>
+</div>
+
+
+<!-- ==============================================================
+     TELA 6 — REFEITÓRIO
+============================================================== -->
+<div id="tela-refeitorio" class="tela">
+
+  <div class="hotspot" style="left:18%;top:24%;width:10%;height:54%;"
+       onclick="abrirModal('Bebedouro', 'LINK_BEBEDOURO')"></div>
+
+  <div class="hotspot" style="left:31%;top:51%;width:15%;height:19%;"
+       onclick="abrirModal('Prato', 'LINK_PRATO')"></div>
+
+  <div class="hotspot" style="left:45%;top:42%;width:7%;height:21%;"
+       onclick="abrirModal('Copo', 'LINK_COPO')"></div>
+
+  <div class="hotspot" style="left:52%;top:51%;width:7%;height:17%;"
+       onclick="abrirModal('Colher', 'LINK_COLHER')"></div>
+
+  <div class="hotspot" style="left:59%;top:51%;width:8%;height:17%;"
+       onclick="abrirModal('Garfo', 'LINK_GARFO')"></div>
+
+  <div class="hotspot" style="left:68%;top:51%;width:9%;height:15%;"
+       onclick="abrirModal('Faca', 'LINK_FACA')"></div>
+
+  <button class="btn-voltar" onclick="irParaTela('tela-mapa')">← Voltar</button>
+</div>
+
+
+<!-- ==============================================================
+     TELA 7 — SALA DE AULA
+============================================================== -->
+<div id="tela-sala-aula" class="tela">
+
+  <div class="hotspot" style="left:0%;top:9%;width:25%;height:56%;"
+       onclick="abrirModal('Quadro Branco', 'LINK_QUADRO_BRANCO')"></div>
+
+  <div class="hotspot" style="left:27%;top:21%;width:45%;height:29%;"
+       onclick="abrirModal('Lousa', 'LINK_LOUSA')"></div>
+
+  <div class="hotspot" style="left:39%;top:51%;width:16%;height:23%;"
+       onclick="abrirModal('Mesa do Professor', 'LINK_MESA_PROF')"></div>
+
+  <div class="hotspot" style="left:12%;top:72%;width:10%;height:17%;"
+       onclick="abrirModal('Caderno', 'LINK_CADERNO')"></div>
+
+  <div class="hotspot" style="left:72%;top:72%;width:10%;height:13%;"
+       onclick="abrirModal('Livro', 'LINK_LIVRO_SALA')"></div>
+
+  <div class="hotspot" style="left:87%;top:11%;width:11%;height:17%;"
+       onclick="abrirModal('Porta', 'LINK_PORTA')"></div>
+
+  <button class="btn-voltar" onclick="irParaTela('tela-mapa')">← Voltar</button>
+</div>
+
+
+<!-- ==============================================================
+     TELA 8 — SALA DE INFORMÁTICA
+============================================================== -->
+<div id="tela-informatica" class="tela">
+
+  <div class="hotspot" style="left:33%;top:14%;width:15%;height:15%;"
+       onclick="abrirModal('Projetor', 'LINK_PROJETOR')"></div>
+
+  <div class="hotspot" style="left:22%;top:37%;width:18%;height:23%;"
+       onclick="abrirModal('Impressora', 'LINK_IMPRESSORA')"></div>
+
+  <div class="hotspot" style="left:44%;top:29%;width:19%;height:32%;"
+       onclick="abrirModal('Monitor', 'LINK_MONITOR')"></div>
+
+  <div class="hotspot" style="left:67%;top:37%;width:17%;height:21%;"
+       onclick="abrirModal('Notebook', 'LINK_NOTEBOOK')"></div>
+
+  <div class="hotspot" style="left:37%;top:72%;width:11%;height:13%;"
+       onclick="abrirModal('Câmera', 'LINK_CAMERA')"></div>
+
+  <button class="btn-voltar" onclick="irParaTela('tela-mapa')">← Voltar</button>
+</div>
+
+
+<!-- ==============================================================
+     TELA 9 — ATELIÊ
+============================================================== -->
+<div id="tela-atelier" class="tela">
+
+  <div class="hotspot" style="left:25%;top:59%;width:32%;height:17%;"
+       onclick="abrirModal('Tintas', 'LINK_TINTAS')"></div>
+
+  <div class="hotspot" style="left:34%;top:34%;width:13%;height:21%;"
+       onclick="abrirModal('Máquina', 'LINK_MAQUINA')"></div>
+
+  <div class="hotspot" style="left:47%;top:27%;width:19%;height:51%;"
+       onclick="abrirModal('Cavalete', 'LINK_CAVALETE')"></div>
+
+  <div class="hotspot" style="left:68%;top:31%;width:10%;height:19%;"
+       onclick="abrirModal('Pincéis', 'LINK_PINCEL')"></div>
+
+  <div class="hotspot" style="left:79%;top:46%;width:9%;height:13%;"
+       onclick="abrirModal('Bloco / Caixa', 'LINK_CAIXA')"></div>
+
+  <button class="btn-voltar" onclick="irParaTela('tela-mapa')">← Voltar</button>
+</div>
+
+
+<!-- ==============================================================
+     MODAL DE VÍDEO
+============================================================== -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <button id="modal-fechar" onclick="fecharModal()">✕</button>
+    <div id="modal-titulo"></div>
+    <div id="modal-video-wrap">
+      <iframe id="modal-iframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ============================================================
+   NAVEGAÇÃO
+============================================================ */
+function irParaTela(id) {
+  document.querySelectorAll('.tela').forEach(function(t) {
+    t.classList.remove('ativa');
+  });
+  document.getElementById(id).classList.add('ativa');
+}
+
+document.getElementById('tela-escola').addEventListener('click', function() {
+  irParaTela('tela-mapa');
+});
+
+var cenaMap = {
+  'atelier':        'tela-atelier',
+  'refeitorio':     'tela-refeitorio',
+  'brinquedoteca':  'tela-brinquedoteca',
+  'informatica':    'tela-informatica',
+  'biblioteca':     'tela-biblioteca',
+  'sala-aula':      'tela-sala-aula',
+  'parquinho':      'tela-parquinho'
+};
+function irParaCena(id) {
+  irParaTela(cenaMap[id]);
+}
+
+/* ============================================================
+   MODAL
+============================================================ */
+function abrirModal(nome, youtubeLink) {
+  var titulo = nome + ' em Libras';
+  var embedUrl = '';
+
+  if (youtubeLink.startsWith('LINK_')) {
+    titulo += '  ⚠️ link pendente';
+  } else {
+    var match = youtubeLink.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
+    embedUrl = match
+      ? 'https://www.youtube.com/embed/' + match[1] + '?autoplay=1'
+      : youtubeLink;
+  }
+
+  document.getElementById('modal-titulo').textContent = titulo;
+  document.getElementById('modal-iframe').src = embedUrl;
+  document.getElementById('modal-overlay').classList.add('aberto');
+}
+
+function fecharModal() {
+  document.getElementById('modal-overlay').classList.remove('aberto');
+  document.getElementById('modal-iframe').src = '';
+}
+
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) fecharModal();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') fecharModal();
+});
+</script>
+
+</body>
+</html>
